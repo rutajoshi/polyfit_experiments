@@ -63,6 +63,53 @@ def polynomial_regression(x_train, y_train, d, noise_mean=0, noise_std=1):
     w = np.matmul(np.linalg.inv(np.matmul(X_mtx.T, X_mtx)), np.matmul(X_mtx.T, y_train))
     return w
 
+def plot_noise_variance_experiment(sample_coefficients, model_degree, x_train, new_training_point_x, noise_std=0.5, noise_points=6):
+    sample_degree = len(sample_coefficients) - 1
+    n = len(x_train)
+
+    # Train the base model using the given training data
+    y_train = evaluate_function_vec(x_train, sample_coefficients)
+    base_model_coefficients = polynomial_regression(x_train, y_train, model_degree, noise_mean=0, noise_std=0.5)
+    y_base_model = evaluate_function_vec(x_train, base_model_coefficients)
+    base_variance = sum([(y_base_model[i] - y_train[i])**2 for i in range(len(y_train))])
+    print("\nBase variance from true function with n=" + str(n) + " training samples is: " + str(base_variance) + "\n")
+
+    new_training_point_y = evaluate_function(new_training_point_x, base_model_coefficients)
+    dev_inc = (3*noise_std) / (noise_points//2)
+    deviations = [new_training_point_y - z*dev_inc for z in range(1, noise_points//2 + 1)] + [new_training_point_y + z*dev_inc for z in range(1, noise_points//2 + 1)]
+
+    axes = plt.gca()
+    axes.set_xlim([min(x_train) - 20, max(x_train) + 20])
+    axes.set_ylim([min(y_train) - 20, max(y_train) + 20])
+    plt.gca().set_autoscale_on(False)
+    x_range = np.linspace(min(x_train) - 10, max(x_train) + 10, 1000)
+    true_function = make_function(sample_coefficients)
+    learned_function = make_function(base_model_coefficients)
+    plt.plot(x_range, true_function(x_range), '-', color='r', label='ground truth function')
+    plt.plot(x_range, learned_function(x_range), '-', color='b', label='base model fit function')
+    plt.plot(x_train, y_train, '.', color='k', label='training data')
+
+    for deviation in deviations:
+        # Train the model including the deviated point and plot it.
+        x_new_train = np.array(list(x_train) + [new_training_point_x])
+        y_new_train = np.array(list(y_train) + [deviation])
+        new_model_coefficients = polynomial_regression(x_new_train, y_new_train, model_degree)
+        y_new_model = evaluate_function_vec(x_train, new_model_coefficients)
+
+        # Plot this new model
+        deviated_function = make_function(new_model_coefficients)
+        plt.plot(np.array([new_training_point_x]), np.array([new_training_point_y]), '.', color='y')
+        plt.plot(x_range, deviated_function(x_range), '-', color='m', label='deviated model')
+
+        # Find the variance of that model from base model function using only x_train points
+        variance = sum([(y_new_model[i] - y_base_model[i])**2 for i in range(len(y_base_model))])
+        print("Variance from base model using (" + str(new_training_point_x) + "," + str(deviation) + ") = " + str(variance))
+
+    print("\nFinished plotting for new training input " + str(new_training_point_x) + '\n')
+    plt.legend(loc='upper right');
+    plt.show()
+
+
 def variance_experiment(sample_coefficients, model_degree, x_train, noise_mean=0, noise_std=0.5, iterations=10):
     sample_degree = len(sample_coefficients) - 1
     n = len(x_train)
@@ -86,8 +133,8 @@ def variance_experiment(sample_coefficients, model_degree, x_train, noise_mean=0
         new_model_coefficients = polynomial_regression(x_new_train, y_new_train, model_degree, noise_mean, noise_std)
         y_new_model = evaluate_function_vec(x_train, new_model_coefficients)
 
-        # Find the variance of that model from true function
-        variance = sum([(y_new_model[i] - y_train[i])**2 for i in range(len(y_base_model))])
+        # Find the variance of that model from base model function
+        variance = sum([(y_new_model[i] - y_base_model[i])**2 for i in range(len(y_base_model))])
         print("Variance with " + str(n + i) + " points is: " + str(variance))
 
     print("\nFinished " + str(iterations) + " iterations.\n")
@@ -114,13 +161,19 @@ def run_experiment(sample_coefficients, model_degree, n, noise_mean=0, noise_std
     plt.show()
 
 def main():
-    w = [3, 1, -2]
+    w = [3, 1, 1, -2]
     # run_experiment(w, 3, 6, noise_mean=0, noise_std=0.5)
-    model_degree = 3
-    lower = -100
-    upper = 100
-    n = 6
-    x_train = np.array([lower + (upper-lower)*np.random.sample() for i in range(6)])
-    variance_experiment(w, model_degree, x_train)
+    model_degree = 4
+    lower = -50
+    upper = 50
+    input_range = upper - lower
+    n = 4
+    # x_train = np.array([lower + input_range*np.random.sample() for i in range(3)])
+    x_train = np.array([lower + i*(input_range // (n+1)) for i in range(1, n+1)])
+    # variance_experiment(w, model_degree, x_train)
+    new_training_point_x_vec = [lower + i*(input_range // 5) for i in range(1, 5)]
+    for i in range(len(new_training_point_x_vec)):
+        plot_noise_variance_experiment(w, 3, x_train, new_training_point_x_vec[i])
+    # plot_noise_variance_experiment(w, 3, x_train, new_training_point_x_vec[0])
 
 if __name__ == "__main__": main()

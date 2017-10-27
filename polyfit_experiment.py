@@ -63,6 +63,35 @@ def polynomial_regression(x_train, y_train, d, noise_mean=0, noise_std=1):
     w = np.matmul(np.linalg.inv(np.matmul(X_mtx.T, X_mtx)), np.matmul(X_mtx.T, y_train))
     return w
 
+def variance_experiment(sample_coefficients, model_degree, x_train, noise_mean=0, noise_std=0.5, iterations=10):
+    sample_degree = len(sample_coefficients) - 1
+    n = len(x_train)
+
+    # Train the base model using the given training data
+    y_train = evaluate_function_vec(x_train, sample_coefficients)
+    base_model_coefficients = polynomial_regression(x_train, y_train, model_degree, noise_mean, noise_std)
+    y_base_model = evaluate_function_vec(x_train, base_model_coefficients)
+    base_variance = sum([(y_base_model[i] - y_train[i])**2 for i in range(len(y_train))])
+    print("\nBase variance with n=" + str(n) + " training samples is: " + str(base_variance) + "\n")
+
+    for i in range(1, iterations+1):
+        # Sample i new points with a random label from the model
+        x_new_points, y_new_points = sample_function(model_degree, base_model_coefficients, i)
+        # Add gaussian noise to the labels of the new points
+        y_new_points = [y+np.random.normal(noise_mean, noise_std) for y in y_new_points]
+
+        # Train a new model using the new point and the old training data
+        x_new_train = np.array(list(x_train) + list(x_new_points))
+        y_new_train = np.array(list(y_train) + list(y_new_points))
+        new_model_coefficients = polynomial_regression(x_new_train, y_new_train, model_degree, noise_mean, noise_std)
+        y_new_model = evaluate_function_vec(x_train, new_model_coefficients)
+
+        # Find the variance of that model from true function
+        variance = sum([(y_new_model[i] - y_train[i])**2 for i in range(len(y_base_model))])
+        print("Variance with " + str(n + i) + " points is: " + str(variance))
+
+    print("\nFinished " + str(iterations) + " iterations.\n")
+
 def run_experiment(sample_coefficients, model_degree, n, noise_mean=0, noise_std=0.5):
     sample_degree = len(sample_coefficients) - 1
 
@@ -85,9 +114,13 @@ def run_experiment(sample_coefficients, model_degree, n, noise_mean=0, noise_std
     plt.show()
 
 def main():
-    # true_function_degree = 2
-    # w = [np.random.sample()*10 - 5 for i in range(true_function_degree + 1)]
     w = [3, 1, -2]
-    run_experiment(w, 3, 6, noise_mean=0, noise_std=0.5)
+    # run_experiment(w, 3, 6, noise_mean=0, noise_std=0.5)
+    model_degree = 3
+    lower = -100
+    upper = 100
+    n = 6
+    x_train = np.array([lower + (upper-lower)*np.random.sample() for i in range(6)])
+    variance_experiment(w, model_degree, x_train)
 
 if __name__ == "__main__": main()

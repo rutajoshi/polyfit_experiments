@@ -47,8 +47,8 @@ def polynomial_regression(x_train, y_train, d, noise_mean=0, noise_std=1):
     y_train = training data output values (ground truth function)
     d = order of the polynomial we want to fit to this data
 
-    Note: Unused because np.polyfit does the same thing.
-    Note: Included for reference.
+    Note: Used even though np.polyfit does the same thing.
+    Note: Included for reference and for modifications as needed to basic pfit
     """
     w = [] #the coefficients vector that should be returned
     X_mtx = []
@@ -64,6 +64,10 @@ def polynomial_regression(x_train, y_train, d, noise_mean=0, noise_std=1):
     return w
 
 def plot_noise_variance_experiment(sample_coefficients, model_degree, x_train, new_training_point_x, noise_std=0.5, noise_points=6):
+    """
+    Plots new model and old model, training points used to generate new model.
+    New training point (just 1) is chosen by adding noise to old model output for that point.
+    """
     sample_degree = len(sample_coefficients) - 1
     n = len(x_train)
 
@@ -102,11 +106,11 @@ def plot_noise_variance_experiment(sample_coefficients, model_degree, x_train, n
 
         # Plot this new model
         deviated_function = make_function(new_model_coefficients)
-        plt.plot(np.array([new_training_point_x]), np.array([new_training_point_y]), '.', color='y')
+        plt.plot(np.array([new_training_point_x]), np.array([new_training_point_y]), '.', color='g', label='new point')
         plt.plot(x_range, deviated_function(x_range), '-', color='m')
 
         # Find the variance of that model from base model function using only x_train points
-        variance = sum([(y_new_model[i] - y_base_model[i])**2 for i in range(len(y_base_model))])
+        variance = sum([(y_new_model[i] - y_base_model[i])**2 for i in range(len(y_base_model))]) / len(y_base_model)
         print("Variance from base model using (" + str(new_training_point_x) + "," + str(deviation) + ") = " + str(variance))
 
     print("\nFinished plotting for new training input " + str(new_training_point_x) + '\n')
@@ -115,6 +119,10 @@ def plot_noise_variance_experiment(sample_coefficients, model_degree, x_train, n
 
 
 def variance_experiment(sample_coefficients, model_degree, x_train, noise_mean=0, noise_std=0.5, iterations=10):
+    """
+    No plots, just variance testing.
+    Adds random points (not well chosen).
+    """
     sample_degree = len(sample_coefficients) - 1
     n = len(x_train)
 
@@ -138,7 +146,7 @@ def variance_experiment(sample_coefficients, model_degree, x_train, noise_mean=0
         y_new_model = evaluate_function_vec(x_train, new_model_coefficients)
 
         # Find the variance of that model from base model function
-        variance = sum([(y_new_model[i] - y_base_model[i])**2 for i in range(len(y_base_model))])
+        variance = sum([(y_new_model[i] - y_base_model[i])**2 for i in range(len(y_base_model))]) / len(y_base_model)
         print("Variance with " + str(n + i) + " points is: " + str(variance))
 
     print("\nFinished " + str(iterations) + " iterations.\n")
@@ -152,6 +160,10 @@ def run_experiment(sample_coefficients, model_degree, n, noise_mean=0, noise_std
     x_range = np.linspace(min(x_train) - 10, max(x_train) + 10, 1000)
     true_function = make_function(sample_coefficients)
     learned_function = make_function(polyfit_coefficients)
+
+    y_model = evaluate_function_vec(x_train, polyfit_coefficients)
+    variance = sum([(y_model[i] - y_train[i])**2 for i in range(len(x_train))]) / len(x_train)
+    print("\nVariance of the polyfit = " + str(variance) + "\n")
 
     axes = plt.gca()
     axes.set_xlim([min(x_train) - 10, max(x_train) + 10])
@@ -171,19 +183,12 @@ def main():
     lower = -50
     upper = 50
     input_range = upper - lower
-    n = 2
+    n = 3
     k = 4
     np.random.seed(1)
-    # x_train = np.array([lower + input_range*np.random.sample() for i in range(3)])
     x_train = np.array([lower + i*(input_range // (n+1)) for i in range(1, n+1)])
-    # variance_experiment(w, model_degree, x_train)
-    # new_training_point_x_vec = [lower + i*(input_range // (k+1)) for i in range(1, k+1)]
-    # for i in range(len(new_training_point_x_vec)):
-    #     plot_noise_variance_experiment(w, 3, x_train, new_training_point_x_vec[i])
     new_training_point_x = (min(x_train) + max(x_train)) / 2
-    # plot_noise_variance_experiment(w, 3, x_train, new_training_point_x_vec[0], noise_std=0.2)
-    plot_noise_variance_experiment(w, 3, x_train, new_training_point_x, noise_std=0.2)
-    # run_experiment(w, 3, 6, noise_mean=0, noise_std=0.5)
+    plot_noise_variance_experiment(w, 3, x_train, new_training_point_x, noise_std=10000)
 
 
 if __name__ == "__main__": main()

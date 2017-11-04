@@ -69,7 +69,6 @@ def run_experiment(sample_coefficients, model_degree, n, noise_mean=0, noise_std
 
     x_train, y_train = sample_function(sample_degree, sample_coefficients, n, lower=-5, upper=5)
     polyfit_coefficients = polynomial_regression(x_train, y_train, model_degree)
-    IPython.embed()
     true_function = make_function(sample_coefficients)
     learned_function = make_function(polyfit_coefficients)
 
